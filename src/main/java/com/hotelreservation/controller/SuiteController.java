@@ -5,12 +5,18 @@ import com.hotelreservation.service.SuiteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/suites")
 @CrossOrigin(origins = "*")
+@Tag(name = "Suite", description = "API de gestión de suites")
 public class SuiteController {
 
     private final SuiteService suiteService;
@@ -20,15 +26,24 @@ public class SuiteController {
         this.suiteService = suiteService;
     }
 
-    // Obtener todas las suites
+    @Operation(summary = "Obtener todas las suites")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista de suites encontrada"),
+            @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
     @GetMapping
     public ResponseEntity<List<Suite>> getAllSuites() {
         return ResponseEntity.ok(suiteService.getAllSuites());
     }
 
-    // Obtener una suite por ID
+    @Operation(summary = "Obtener una suite por ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Suite encontrada"),
+            @ApiResponse(responseCode = "404", description = "Suite no encontrada")
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<Suite> getSuiteById(@PathVariable String id) {
+    public ResponseEntity<Suite> getSuiteById(
+            @Parameter(description = "ID de la suite") @PathVariable String id) {
         return suiteService.getSuiteById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -62,20 +77,26 @@ public class SuiteController {
         return ResponseEntity.ok(suiteService.getSuitesByPriceRange(minPrice, maxPrice));
     }
 
-    // Crear una nueva suite
+    @Operation(summary = "Crear una nueva suite")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Suite creada exitosamente"),
+            @ApiResponse(responseCode = "400", description = "Datos de la suite inválidos")
+    })
     @PostMapping
-    public ResponseEntity<Suite> createSuite(@RequestBody Suite suite) {
-        try {
-            Suite newSuite = suiteService.createSuite(suite);
-            return ResponseEntity.ok(newSuite);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<Suite> createSuite(
+            @Parameter(description = "Datos de la suite") @RequestBody Suite suite) {
+        return ResponseEntity.ok(suiteService.createSuite(suite));
     }
 
-    // Actualizar una suite existente
+    @Operation(summary = "Actualizar una suite existente")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Suite actualizada exitosamente"),
+            @ApiResponse(responseCode = "404", description = "Suite no encontrada")
+    })
     @PutMapping("/{id}")
-    public ResponseEntity<Suite> updateSuite(@PathVariable String id, @RequestBody Suite suite) {
+    public ResponseEntity<Suite> updateSuite(
+            @Parameter(description = "ID de la suite") @PathVariable String id,
+            @Parameter(description = "Datos actualizados de la suite") @RequestBody Suite suite) {
         try {
             Suite updatedSuite = suiteService.updateSuite(id, suite);
             return ResponseEntity.ok(updatedSuite);
@@ -97,9 +118,14 @@ public class SuiteController {
         }
     }
 
-    // Eliminar una suite
+    @Operation(summary = "Eliminar una suite")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Suite eliminada exitosamente"),
+            @ApiResponse(responseCode = "404", description = "Suite no encontrada")
+    })
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteSuite(@PathVariable String id) {
+    public ResponseEntity<Void> deleteSuite(
+            @Parameter(description = "ID de la suite") @PathVariable String id) {
         try {
             suiteService.deleteSuite(id);
             return ResponseEntity.ok().build();

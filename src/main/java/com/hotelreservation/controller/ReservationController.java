@@ -8,6 +8,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -15,6 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/reservations")
 @CrossOrigin(origins = "*")
+@Tag(name = "Reservation", description = "API de gestión de reservaciones")
 public class ReservationController {
     private static final Logger logger = LoggerFactory.getLogger(ReservationController.class);
     private final ReservationService reservationService;
@@ -24,80 +30,71 @@ public class ReservationController {
         this.reservationService = reservationService;
     }
 
-    // Obtener todas las reservaciones
+    @Operation(summary = "Obtener todas las reservaciones")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista de reservaciones encontrada"),
+            @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
     @GetMapping
     public ResponseEntity<List<Reservation>> getAllReservations() {
         return ResponseEntity.ok(reservationService.getAllReservations());
     }
 
-    // Obtener una reservación por ID
+    @Operation(summary = "Obtener una reservación por ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Reservación encontrada"),
+            @ApiResponse(responseCode = "404", description = "Reservación no encontrada")
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<Reservation> getReservationById(@PathVariable String id) {
+    public ResponseEntity<Reservation> getReservationById(
+            @Parameter(description = "ID de la reservación") @PathVariable String id) {
         return reservationService.getReservationById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // Obtener reservaciones por cliente
+    @Operation(summary = "Obtener reservaciones por cliente")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista de reservaciones del cliente encontrada"),
+            @ApiResponse(responseCode = "404", description = "Cliente no encontrado")
+    })
     @GetMapping("/customer/{customerId}")
-    public ResponseEntity<List<Reservation>> getReservationsByCustomer(@PathVariable String customerId) {
+    public ResponseEntity<List<Reservation>> getReservationsByCustomer(
+            @Parameter(description = "ID del cliente") @PathVariable String customerId) {
         return ResponseEntity.ok(reservationService.getReservationsByCustomer(customerId));
     }
 
-    // Obtener reservaciones por suite
+    @Operation(summary = "Obtener reservaciones por suite")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista de reservaciones de la suite encontrada"),
+            @ApiResponse(responseCode = "404", description = "Suite no encontrada")
+    })
     @GetMapping("/suite/{suiteId}")
-    public ResponseEntity<List<Reservation>> getReservationsBySuite(@PathVariable String suiteId) {
+    public ResponseEntity<List<Reservation>> getReservationsBySuite(
+            @Parameter(description = "ID de la suite") @PathVariable String suiteId) {
         return ResponseEntity.ok(reservationService.getReservationsBySuite(suiteId));
     }
 
-    // Obtener reservaciones activas
-    @GetMapping("/active")
-    public ResponseEntity<List<Reservation>> getActiveReservations() {
-        return ResponseEntity.ok(reservationService.getActiveReservations());
-    }
-
-    // Obtener reservaciones por rango de fechas
-    @GetMapping("/date-range")
-    public ResponseEntity<List<Reservation>> getReservationsByDateRange(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ResponseEntity.ok(reservationService.getReservationsByDateRange(startDate, endDate));
-    }
-
-    // Crear una nueva reservación
+    @Operation(summary = "Crear una nueva reservación")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Reservación creada exitosamente"),
+            @ApiResponse(responseCode = "400", description = "Datos de reservación inválidos")
+    })
     @PostMapping
-    public ResponseEntity<?> createReservation(@RequestBody Reservation reservation) {
-        try {
-            logger.info("Creating reservation for customer: {} and suite: {}",
-                    reservation.getCustomer().getId(), reservation.getSuite().getId());
-
-            if (reservation.getCustomer() == null || reservation.getCustomer().getId() == null) {
-                logger.error("Customer ID not provided");
-                return ResponseEntity.badRequest().body("Customer ID not provided");
-            }
-
-            if (reservation.getSuite() == null || reservation.getSuite().getId() == null) {
-                logger.error("Suite ID not provided");
-                return ResponseEntity.badRequest().body("Suite ID not provided");
-            }
-
-            Reservation newReservation = reservationService.createReservation(reservation);
-            logger.info("Reservation created successfully with ID: {}", newReservation.getId());
-            return ResponseEntity.ok(newReservation);
-        } catch (RuntimeException e) {
-            logger.error("Error creating reservation: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            logger.error("Unexpected error creating reservation", e);
-            return ResponseEntity.internalServerError().body("Internal server error: " + e.getMessage());
-        }
+    public ResponseEntity<Reservation> createReservation(
+            @Parameter(description = "Datos de la reservación") @RequestBody Reservation reservation) {
+        return ResponseEntity.ok(reservationService.createReservation(reservation));
     }
 
-    // Actualizar una reservación existente
+    @Operation(summary = "Actualizar una reservación existente")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Reservación actualizada exitosamente"),
+            @ApiResponse(responseCode = "404", description = "Reservación no encontrada")
+    })
     @PutMapping("/{id}")
     public ResponseEntity<Reservation> updateReservation(
-            @PathVariable String id,
-            @RequestBody Reservation reservation) {
+            @Parameter(description = "ID de la reservación") @PathVariable String id,
+            @Parameter(description = "Datos actualizados de la reservación") @RequestBody Reservation reservation) {
         try {
             Reservation updatedReservation = reservationService.updateReservation(id, reservation);
             return ResponseEntity.ok(updatedReservation);
@@ -106,9 +103,14 @@ public class ReservationController {
         }
     }
 
-    // Cancelar una reservación
+    @Operation(summary = "Cancelar una reservación")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Reservación cancelada exitosamente"),
+            @ApiResponse(responseCode = "404", description = "Reservación no encontrada")
+    })
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> cancelReservation(@PathVariable String id) {
+    public ResponseEntity<Void> cancelReservation(
+            @Parameter(description = "ID de la reservación") @PathVariable String id) {
         try {
             reservationService.cancelReservation(id);
             return ResponseEntity.ok().build();
